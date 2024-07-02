@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Chart</title>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/data.js"></script>
+</head>
+<body>
+    <div id="chartContainer" style="width:100%; height:100%; min-height: 900px;"></div>
+    <script>
+        const ticker = 'AAPL';
+        const startDate = '2024-05-02'; // Example start date
+
+        function fetchLatestPrice(ticker) {
+            const url = `https://csci571hw2-414320.de.r.appspot.com/api/v1.0.0/latestprice/${ticker}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Latest Price:', data);
+                    fetchDailyChart(ticker, data.t); // Use the date from the latest price data
+                })
+                .catch(error => console.error('Error fetching latest price:', error));
+        }
+
+        function fetchDailyChart(ticker, startDate) {
+            const url = `https://csci571hw2-414320.de.r.appspot.com/api/v1.0.0/dailycharts/${ticker}/date/${startDate}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Daily Charts:', data);
+                    prepareChartData(data.results); // Assuming the data structure matches
+                })
+                .catch(error => console.error('Error fetching daily charts:', error));
+        }
+
+        function prepareChartData(chartData) {
+            const data = chartData.map(item => ({
+                x: item.t * 1000, // Convert Unix timestamp to JavaScript timestamp
+                y: item.c
+            }));
+
+            // Determine the line color based on the trend of the data
+            const lineColor = data[0].y < data[data.length - 1].y ? 'green' : 'red';
+
+            Highcharts.stockChart('chartContainer', {
+                rangeSelector: { selected: 1 },
+                series: [{
+                    name: ticker,
+                    data: data,
+                    color: lineColor, // Apply dynamic color based on the price trend
+                    tooltip: { valueDecimals: 2 },
+                    style: {
+                        fontSize: '35px' // Increasing yAxis labels font size
+                    }
+                }]
+            });
+        }
+        
+        // Fetch latest price and initialize chart fetching
+        fetchLatestPrice(ticker);
+    </script>
+</body>
+</html>
+
+
+

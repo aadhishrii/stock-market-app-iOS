@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Insights</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+</head>
+<body>
+    <div id="recommendationContainer" style="width: 100%; height: 100%; min-height: 900px; margin: 0 auto"></div>
+    <div id="earningsChartContainer" style="width: 100%; height: 100%; min-height: 900px; margin: 0 auto"></div>
+
+    <script>
+        // Ticker can be dynamically changed as needed
+        const ticker = 'AAPL';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetchData(ticker);
+        });
+
+        function fetchData(ticker) {
+            fetchRecommendation(ticker);
+            fetchEarning(ticker);
+        }
+
+        function fetchRecommendation(ticker) {
+            const url = `https://csci571hw2-414320.de.r.appspot.com/api/v1.0.0/recommendation/${ticker}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => createRecommendationChart(data))
+                .catch(error => console.error('Error fetching recommendation data:', error));
+        }
+
+        function fetchEarning(ticker) {
+            const url = `https://csci571hw2-414320.de.r.appspot.com/api/v1.0.0/earnings/${ticker}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => createEarningsChart(data))
+                .catch(error => console.error('Error fetching earnings data:', error));
+        }
+
+        function createRecommendationChart(data) {
+            const categories = ['strongBuy', 'buy', 'hold', 'sell', 'strongSell'];
+            const colors = ['#006400', '#90EE90', '#FFA500', '#FF7043', '#8B0000'];
+            const series = categories.map((category, index) => ({
+                type: 'column',
+                name: category.charAt(0).toUpperCase() + category.slice(1).replace(/([A-Z])/g, ' $1'),
+                data: data.map(item => item[category]),
+                color: colors[index]
+            }));
+
+            Highcharts.chart('recommendationContainer', {
+                chart: { type: 'column' },
+                title: { text: 'Recommendation Trends',
+                    style: {
+                        fontSize: '50px' // Increasing yAxis title font size
+                    }
+                },
+                xAxis: { categories: data.map(item => item.period),
+                    labels: {
+                        style: {
+                            fontSize: '25px' // Increasing yAxis labels font size
+                        }
+                    }},
+                yAxis: { min: 0, title: { text: '# Analysts' },
+                    labels: {
+                        style: {
+                            fontSize: '25px' // Increasing yAxis labels font size
+                        }
+                    }},
+                tooltip: {
+                    pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b> ({point.percentage:.0f}%)<br/>',
+                    shared: true,
+                    style: {
+                        fontSize: '25px' // Increasing yAxis labels font size
+                    }
+                },
+                plotOptions: { column: { stacking: 'normal' } },
+                series: series
+            });
+        }
+
+        function createEarningsChart(data) {
+            const actualSeriesData = data.map(earning => ({
+                y: earning.actual,
+                x: Date.parse(earning.period)
+            }));
+            const estimateSeriesData = data.map(earning => ({
+                y: earning.estimate,
+                x: Date.parse(earning.period)
+            }));
+
+            Highcharts.chart('earningsChartContainer', {
+                chart: { type: 'spline' },
+                title: { text: 'Historical EPS Surprises',
+                    style: {
+                        fontSize: '50px' // Increasing yAxis title font size
+                    }
+                },
+                xAxis: { type: 'datetime', title: { text: 'Date' },
+                    labels: {
+                        style: {
+                            fontSize: '25px' // Increasing yAxis labels font size
+                        }
+                    }},
+                yAxis: { title: { text: 'Quarterly EPS' },
+                    labels: {
+                        style: {
+                            fontSize: '25px' // Increasing yAxis labels font size
+                        }
+                    }},
+                series: [
+                    { name: 'Actual', data: actualSeriesData, color: '#ADD8E6' },
+                    { name: 'Estimate', data: estimateSeriesData, color: '#800080' }],
+                tooltip: {
+                    formatter: function() {
+                        return 'Date: <b>' + Highcharts.dateFormat('%Y-%m-%d', this.x) + '</b><br/>' +
+                            this.series.name + ': <b>' + this.y + '</b>';
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Highcharts in SwiftUI</title>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <!-- Ensure that more and exporting are loaded after Highstock -->
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <!-- Indicators should be loaded after the main Highstock and more -->
+    <script src="https://code.highcharts.com/modules/indicators/indicators-all.js"></script>
+    <script src="https://code.highcharts.com/stock/indicators/indicators.js"></script>
+    <!-- Confirm volume-by-price is a part of indicators-all or load explicitly -->
+    <script src="https://code.highcharts.com/stock/indicators/volume-by-price.js"></script>
+    <script src="https://code.highcharts.com/modules/data.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/accessibility.js"></script>
+</head>
+
+<body>
+    <div id="container" style="width:100%; height:100%; min-height: 900px;"></div>
+    <script>
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        
+
+        function createHistCharts(data, ticker) {
+            let ohlc = [];
+            let volume = [];
+
+            data.forEach(function(point) {
+                ohlc.push([
+                    point.t, // the date
+                    point.o, // open
+                    point.h, // high
+                    point.l, // low
+                    point.c  // close
+                ]);
+
+                volume.push([
+                    point.t, // the date
+                    point.v  // the volume
+                ]);
+            });
+
+            const chart = Highcharts.stockChart('container', {
+                rangeSelector: {
+                    selected: 2,
+                },
+                
+                yAxis: [{
+                    labels: {
+                        align: 'right',
+                        x: -3,
+                        style: {
+                            fontSize: '25px' // Increasing yAxis labels font size
+                        }
+                    },
+                    title: {
+                        text: 'OHLC'
+                    },
+                    height: '100%',
+                    lineWidth: 2,
+                    resize: {
+                        enabled: true
+                    }
+                }, {
+                    labels: {
+                        align: 'right',
+                        x: -3,
+                        style: {
+                            fontSize: '25px' // Increasing yAxis labels font size
+                        }
+                    },
+                    title: {
+                        text: 'Volume'
+                    },
+                    top: '65%',
+                    height: '35%',
+                    offset: 0,
+                    lineWidth: 2
+                }],
+                series: [{
+                    type: 'candlestick',
+                    name: ticker.toUpperCase(),
+                    id: ticker,
+                    zIndex: 2,
+                    data: ohlc,
+                  },
+                  {
+                    type: 'column',
+                    name: 'Volume',
+                    id: 'volume',
+                    data: volume,
+                    yAxis: 1,
+                  },
+                  {
+                    type: 'vbp',
+                    linkedTo: ticker,
+                    params: {
+                      volumeSeriesID: 'volume',
+                    },
+                    dataLabels: {
+                      enabled: false,
+                    },
+                    zoneLines: {
+                      enabled: false,
+                    },
+                  },
+                  {
+                    type: 'sma',
+                    linkedTo: ticker,
+                    zIndex: 1,
+                    marker: {
+                      enabled: false,
+                    },
+                  }],
+                tooltip: {
+                                    style: {
+                                        fontSize: '30px' // Increasing tooltip font size
+                                    }
+                                }
+            });
+           
+           chart.update({
+                           rangeSelector: {
+                               dropdown
+                           }
+                       });
+            
+        }
+
+        
+        function fetchData(ticker) {
+            const url = `https://csci571hw2-414320.de.r.appspot.com/api/v1.0.0/histcharts/${ticker}/date/${new Date().toISOString().split('T')[0]}`;
+            fetch(url).then(function(response) {
+                return response.json();
+            }).then(function(json) {
+                createHistCharts(json.results, ticker);
+            }).catch(function(error) {
+                console.error('Error fetching chart data:', error);
+            });
+        }
+
+        fetchData('AAPL'); // Default ticker
+    </script>
+</body>
+</html>
